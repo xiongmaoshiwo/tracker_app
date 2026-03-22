@@ -977,31 +977,36 @@
   <!-- Mobile Header -->
   <div class="mobile-header">
     <button id="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+  </div>
+
+  <!-- Sidebar Overlay -->
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
   <!-- Sidebar -->
   <aside id="sidebar" class="sidebar">
     <div class="logo" onclick="toggleMgmtDrawer()">
       <div class="logo-text"><span>management</span>-app</div>
     </div>
     <nav>
-      <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')">
-        <i class="fas fa-grid-2"></i> ダッシュボード
+      <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard');closeSidebar()">
+        <i class="fas fa-th-large"></i> ダッシュボード
       </button>
-      <button class="nav-btn" id="nav-study" onclick="showPage('study')">
+      <button class="nav-btn" id="nav-study" onclick="showPage('study');closeSidebar()">
         <i class="fas fa-graduation-cap"></i> 学習タイマー
       </button>
-      <button class="nav-btn" id="nav-workout" onclick="showPage('workout')">
+      <button class="nav-btn" id="nav-workout" onclick="showPage('workout');closeSidebar()">
         <i class="fas fa-dumbbell"></i> 筋トレ記録
       </button>
-      <button class="nav-btn" id="nav-sport" onclick="showPage('sport')">
+      <button class="nav-btn" id="nav-sport" onclick="showPage('sport');closeSidebar()">
         <i class="fas fa-running"></i> ルート走行
       </button>
-      <button class="nav-btn" id="nav-calendar" onclick="showPage('calendar')">
+      <button class="nav-btn" id="nav-calendar" onclick="showPage('calendar');closeSidebar()">
         <i class="fas fa-calendar-alt"></i> カレンダー
       </button>
-      <button class="nav-btn" id="nav-todo" onclick="showPage('todo')">
+      <button class="nav-btn" id="nav-todo" onclick="showPage('todo');closeSidebar()">
         <i class="fas fa-check-square"></i> ToDoリスト
       </button>
-      <button class="nav-btn" id="nav-notify" onclick="openReminderSettings()">
+      <button class="nav-btn" id="nav-notify" onclick="openReminderSettings();closeSidebar()">
         <i class="fas fa-bell"></i> 通知設定
       </button>
     </nav>
