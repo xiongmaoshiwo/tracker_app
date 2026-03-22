@@ -1072,8 +1072,8 @@
           <div class="chart-wrap"><canvas id="chart-weekly-sport"></canvas></div>
         </div>
         <div class="card">
-          <div class="section-title">科目別比率</div>
-          <div class="chart-wrap"><canvas id="chart-subject"></canvas></div>
+          <div class="section-title">週間筋トレ推移 (Vol)</div>
+          <div class="chart-wrap"><canvas id="chart-weekly-workout"></canvas></div>
         </div>
       </div>
       <div class="card">
@@ -1692,40 +1692,44 @@ function doGet() {
         }
       });
 
-      // Weekly sport chart
+      // Weekly sport chart (Running minutes)
       if (charts.weeklySport) charts.weeklySport.destroy();
       charts.weeklySport = new Chart(document.getElementById('chart-weekly-sport'), {
         type: 'bar',
         data: {
           labels,
-          datasets: [
-            { label: '走行 (分)', data: sportData, backgroundColor: '#10b981', borderRadius: 4, yAxisID: 'y' },
-            { label: '筋トレ (Vol/10)', data: workoutData.map(v => v / 10), backgroundColor: '#f59e0b', borderRadius: 4, yAxisID: 'y1' }
-          ]
+          datasets: [{ label: '走行 (分)', data: sportData, backgroundColor: '#10b981', borderRadius: 4 }]
         },
         options: {
-          plugins: { legend: { display: true, labels: { color: '#94a3b8', font: { size: 10 }, usePointStyle: true } } },
+          plugins: { legend: { display: false } },
           scales: {
-            x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#64748b' } },
-            y: { position: 'left', grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#64748b' } },
-            y1: { position: 'right', grid: { display: false }, ticks: { color: '#f59e0b' }, title: { display: true, text: 'WO Volume / 10', color: '#f59e0b' } }
+            x: { grid: { display: false }, ticks: { color: '#64748b' } },
+            y: { grid: { color: 'rgba(0,0,0,.05)' }, border: { dash: [4, 4] }, ticks: { color: '#64748b' } }
           },
           responsive: true, maintainAspectRatio: false
         }
       });
 
-      // Subject pie (Study records only)
-      const subTotals = {};
-      S.records.filter(r => r.type === 'study').forEach(r => {
-        subTotals[r.subject] = (subTotals[r.subject] || 0) + r.duration;
+      // Weekly workout chart (Total Volume)
+      if (charts.weeklyWorkout) charts.weeklyWorkout.destroy();
+      charts.weeklyWorkout = new Chart(document.getElementById('chart-weekly-workout'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{ label: 'Vol (kg)', data: workoutData, backgroundColor: '#f59e0b', borderRadius: 4 }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#64748b' } },
+            y: { grid: { color: 'rgba(0,0,0,.05)' }, border: { dash: [4, 4] }, ticks: { color: '#64748b' } }
+          },
+          responsive: true, maintainAspectRatio: false
+        }
       });
-      const subs = Object.keys(subTotals);
+
+      // Subject pie (Moved if needed, currently hidden for 3-chart layout)
       if (charts.subject) charts.subject.destroy();
-      charts.subject = new Chart(document.getElementById('chart-subject'), {
-        type: 'doughnut',
-        data: { labels: subs, datasets: [{ data: subs.map(s => subTotals[s]), backgroundColor: subs.map(s => subColor(s)), borderWidth: 0, hoverOffset: 12 }] },
-        options: { cutout: '68%', plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 12 }, padding: 12 } } }, responsive: true, maintainAspectRatio: false }
-      });
 
       // Today sessions (All)
       const todayAllRecs = S.records.filter(r => r.date === today());
