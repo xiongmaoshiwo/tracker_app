@@ -1622,10 +1622,9 @@ function doGet() {
 
       // 週間学習・走行推移の各項目を取得
       const labels = [];
-      const studyDetails = ['テキスト', '問題集', '動画学習', 'アプリ', 'その他'];
-      const studyDetailData = {
-        'テキスト': [], '問題集': [], '動画学習': [], 'アプリ': [], 'その他': []
-      };
+      const allDetails = S.details || ['テキスト', '問題集', '動画学習', 'アプリ', 'その他'];
+      const studyDetailData = {};
+      allDetails.forEach(d => studyDetailData[d] = []);
       const sportData = [];
       const workoutData = [];
 
@@ -1635,7 +1634,7 @@ function doGet() {
         labels.push(['日', '月', '火', '水', '木', '金', '土'][d.getDay()]);
 
         // 勉強データ（詳細ごと）
-        studyDetails.forEach(det => {
+        allDetails.forEach(det => {
           const val = S.records.filter(r => r.date === ds && r.type === 'study' && r.detail === det)
             .reduce((s, r) => s + r.duration, 0);
           studyDetailData[det].push(val);
@@ -1664,14 +1663,17 @@ function doGet() {
       const detailIcons = { 'テキスト': '○', '問題集': '△', '動画学習': '□', 'アプリ': '☆', 'その他': '◇' };
       const detailColors = { 'テキスト': '#8b5cf6', '問題集': '#a78bfa', '動画学習': '#6366f1', 'アプリ': '#c084fc', 'その他': '#e879f9' };
 
+      // データが存在する項目のみを抽出
+      const activeDetails = allDetails.filter(det => studyDetailData[det].some(v => v > 0));
+
       charts.weeklyStudy = new Chart(document.getElementById('chart-weekly-study'), {
         type: 'bar',
         data: {
           labels,
-          datasets: studyDetails.map(det => ({
-            label: `${detailIcons[det]} ${det}`,
+          datasets: activeDetails.map(det => ({
+            label: `${detailIcons[det] || '•'} ${det}`,
             data: studyDetailData[det],
-            backgroundColor: detailColors[det],
+            backgroundColor: detailColors[det] || '#ccc',
             borderRadius: 4
           }))
         },
