@@ -1,0 +1,2409 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>StudyFlow - 学習・筋トレ統合管理</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta name="description" content="学習時間の記録・可視化・カレンダー・ToDoリスト・目標設定が一体となったプレミアム勉強管理アプリ">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    :root {
+      --bg-deep: #080e1a;
+      --bg-base: #0d1526;
+      --bg-card: #131f35;
+      --bg-card2: #192844;
+      --border: #1e3050;
+      --purple: #8b5cf6;
+      --purple-light: #a78bfa;
+      --cyan: #06b6d4;
+      --emerald: #10b981;
+      --rose: #f43f5e;
+      --amber: #f59e0b;
+      --text: #f1f5f9;
+      --text-muted: #64748b;
+      --text-sub: #94a3b8;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', 'Inter', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex
+    }
+
+    /* Sidebar */
+    #sidebar {
+      width: 260px;
+      min-width: 260px;
+      background: var(--bg-base);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 0
+    }
+
+    .logo {
+      padding: 28px 24px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--purple), var(--cyan));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px
+    }
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff, var(--purple-light));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent
+    }
+
+    nav {
+      flex: 1;
+      padding: 16px 12px
+    }
+
+    .nav-btn {
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: inherit;
+      transition: all .2s;
+      margin-bottom: 4px;
+      text-align: left
+    }
+
+    .nav-btn:hover {
+      background: var(--bg-card);
+      color: var(--text)
+    }
+
+    .nav-btn.active {
+      background: rgba(139, 92, 246, .15);
+      color: var(--purple-light);
+      border-right: 3px solid var(--purple)
+    }
+
+    .nav-btn i {
+      width: 20px;
+      text-align: center;
+      font-size: 16px
+    }
+
+    .sidebar-footer {
+      padding: 16px 12px;
+      border-top: 1px solid var(--border)
+    }
+
+    .status-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px
+    }
+
+    .status-card .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--text-muted);
+      margin-bottom: 8px
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 4px
+    }
+
+    .status-row .val {
+      font-weight: 700;
+      color: var(--emerald)
+    }
+
+    /* Main */
+    #main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 36px;
+      background: var(--bg-deep)
+    }
+
+    .page {
+      display: none;
+      animation: fadeIn .3s ease
+    }
+
+    .page.active {
+      display: block
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px
+    }
+
+    .card-sm {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px
+    }
+
+    .glass {
+      background: rgba(19, 31, 53, .6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(139, 92, 246, .1);
+      border-radius: 20px;
+      padding: 24px
+    }
+
+    /* Typography */
+    .page-title {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 24px;
+      letter-spacing: -0.5px
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 12px
+    }
+
+    /* Grid */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px
+    }
+
+    /* Stat cards */
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px 22px
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .stat-value {
+      font-size: 30px;
+      font-weight: 800;
+      font-family: 'Inter', monospace;
+      letter-spacing: -1px
+    }
+
+    .stat-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px
+    }
+
+    .text-purple {
+      color: var(--purple-light)
+    }
+
+    .text-cyan {
+      color: var(--cyan)
+    }
+
+    .text-emerald {
+      color: var(--emerald)
+    }
+
+    .text-rose {
+      color: var(--rose)
+    }
+
+    .text-amber {
+      color: var(--amber)
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      background: rgba(255, 255, 255, .07);
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+      margin-top: 8px
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width .5s ease
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      transition: all .2s
+    }
+
+    .btn-primary {
+      background: var(--purple);
+      color: #fff
+    }
+
+    .btn-primary:hover {
+      background: #7c3aed;
+      transform: translateY(-1px)
+    }
+
+    .btn-success {
+      background: var(--emerald);
+      color: #fff
+    }
+
+    .btn-success:hover {
+      background: #059669
+    }
+
+    .btn-danger {
+      background: var(--rose);
+      color: #fff
+    }
+
+    .btn-danger:hover {
+      background: #e11d48
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-sub);
+      border: 1px solid var(--border)
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg-card);
+      color: var(--text)
+    }
+
+    .btn-lg {
+      padding: 14px 32px;
+      font-size: 16px;
+      border-radius: 16px
+    }
+
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: 10px
+    }
+
+    /* Inputs */
+    input[type=text],
+    input[type=number],
+    input[type=date],
+    select,
+    textarea {
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      width: 100%;
+      transition: border-color .2s;
+      outline: none
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--purple)
+    }
+
+    select option {
+      background: var(--bg-deep)
+    }
+
+    label.form-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600
+    }
+
+    .form-group {
+      margin-bottom: 14px
+    }
+
+    /* Timer display */
+    .timer-display {
+      font-size: 80px;
+      font-weight: 800;
+      font-family: 'Inter', monospace;
+      letter-spacing: -4px;
+      text-align: center;
+      text-shadow: 0 0 40px rgba(139, 92, 246, .4);
+      padding: 32px 0
+    }
+
+    /* Pomodoro */
+    .pomo-circle {
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      border: 10px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+      position: relative;
+      background: var(--bg-card)
+    }
+
+    .pomo-circle.work {
+      border-color: var(--purple)
+    }
+
+    .pomo-circle.break {
+      border-color: var(--emerald)
+    }
+
+    .pomo-time {
+      font-size: 56px;
+      font-weight: 800;
+      font-family: 'Inter', monospace;
+      letter-spacing: -2px
+    }
+
+    .pomo-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px
+    }
+
+    /* Calendar */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px
+    }
+
+    .cal-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-bottom: 8px
+    }
+
+    .cal-day-name {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      padding: 8px 0
+    }
+
+    .cal-cell {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      min-height: 90px;
+      cursor: pointer;
+      transition: all .2s
+    }
+
+    .cal-cell:hover {
+      border-color: var(--purple);
+      background: var(--bg-card2)
+    }
+
+    .cal-cell.today {
+      border-color: var(--purple);
+      background: rgba(139, 92, 246, .08)
+    }
+
+    .cal-cell.empty {
+      background: transparent;
+      border-color: transparent;
+      cursor: default
+    }
+
+    .cal-date {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px
+    }
+
+    .cal-event {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .ev-学習 {
+      background: rgba(139, 92, 246, .25);
+      color: var(--purple-light)
+    }
+
+    .ev-予定 {
+      background: rgba(6, 182, 212, .2);
+      color: var(--cyan)
+    }
+
+    .ev-締め切り {
+      background: rgba(244, 63, 94, .2);
+      color: var(--rose)
+    }
+
+    .cal-summary {
+      font-size: 9px;
+      padding: 2px 5px;
+      border-radius: 4px;
+      margin-top: 3px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cal-summary.study {
+      background: rgba(139, 92, 246, .15);
+      color: var(--purple-light);
+    }
+
+    .cal-summary.sport {
+      background: rgba(16, 185, 129, .15);
+      color: var(--emerald);
+    }
+
+    /* ToDo */
+    .todo-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 8px;
+      transition: all .2s
+    }
+
+    .todo-item:hover {
+      border-color: rgba(139, 92, 246, .3)
+    }
+
+    .todo-item.done {
+      opacity: .5
+    }
+
+    .todo-check {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all .2s
+    }
+
+    .todo-check.checked {
+      background: var(--emerald);
+      border-color: var(--emerald)
+    }
+
+    .todo-text {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 500
+    }
+
+    .todo-text.done-text {
+      text-decoration: line-through;
+      color: var(--text-muted)
+    }
+
+    .prio-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px
+    }
+
+    .prio-高 {
+      background: rgba(244, 63, 94, .2);
+      color: var(--rose)
+    }
+
+    .prio-中 {
+      background: rgba(245, 158, 11, .2);
+      color: var(--amber)
+    }
+
+    .prio-低 {
+      background: rgba(100, 116, 139, .2);
+      color: var(--text-muted)
+    }
+
+    /* Session list */
+    .session-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .session-item:last-child {
+      border-bottom: none
+    }
+
+    .session-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    .session-sub {
+      font-weight: 600;
+      font-size: 14px
+    }
+
+    .session-dur {
+      margin-left: auto;
+      font-size: 13px;
+      color: var(--text-muted);
+      font-family: 'Inter', monospace
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .7);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all
+    }
+
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px;
+      width: 420px;
+      max-width: 90vw;
+      transform: translateY(20px);
+      transition: transform .2s
+    }
+
+    .modal-overlay.open .modal-box {
+      transform: translateY(0)
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 24px
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: flex-end
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700
+    }
+
+    /* Tab filter */
+    .tab-group {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px
+    }
+
+    .tab-pill {
+      padding: 7px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      transition: all .2s
+    }
+
+    .tab-pill.active {
+      background: var(--purple);
+      color: #fff;
+      border-color: var(--purple)
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 99px
+    }
+
+    /* Chart areas */
+    .chart-wrap {
+      position: relative;
+      height: 200px
+    }
+
+    /* Notification toast */
+    .notif {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-card2);
+      border: 1px solid var(--purple);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 200;
+      transform: translateY(80px);
+      transition: transform .3s;
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .notif.show {
+      transform: translateY(0)
+    }
+
+    /* Hamburger button */
+    #hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 4px 8px
+    }
+
+    /* Mobile overlay */
+    #sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
+      z-index: 49
+    }
+
+    #sidebar-overlay.open {
+      display: block
+    }
+
+    /* Reminder banner */
+    #reminder-banner {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: linear-gradient(135deg, #7c3aed, #0891b2);
+      color: #fff;
+      padding: 14px 18px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 300;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      max-width: 320px;
+      box-shadow: 0 8px 32px rgba(139, 92, 246, .4)
+    }
+
+    #reminder-banner.show {
+      display: flex
+    }
+
+    /* Responsive */
+    @media(max-width:768px) {
+      body {
+        flex-direction: column;
+        overflow: auto;
+        height: auto;
+        min-height: 100vh
+      }
+
+      #hamburger {
+        display: block
+      }
+
+      #sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        height: 100vh;
+        z-index: 50;
+        transition: left .3s;
+        width: 260px
+      }
+
+      #sidebar.open {
+        left: 0
+      }
+
+      #main {
+        padding: 16px;
+        overflow-y: visible
+      }
+
+      .grid-4 {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr
+      }
+
+      #page-study>div[style] {
+        display: block !important
+      }
+
+      #page-study>div>div:last-child {
+        margin-top: 16px
+      }
+
+      .timer-display {
+        font-size: 54px;
+        padding: 20px 0;
+        letter-spacing: -2px
+      }
+
+      .pomo-circle {
+        width: 200px;
+        height: 200px
+      }
+
+      .pomo-time {
+        font-size: 44px
+      }
+
+      .cal-grid,
+      .cal-header {
+        grid-template-columns: repeat(7, 1fr);
+        gap: 3px
+      }
+
+      .cal-cell {
+        min-height: 50px;
+        padding: 4px
+      }
+
+      .cal-date {
+        font-size: 11px
+      }
+
+      .cal-event {
+        display: none
+      }
+
+      #page-todo .card>div[style] {
+        flex-wrap: wrap
+      }
+
+      .page-title {
+        font-size: 22px
+      }
+
+      .mobile-header {
+        display: flex !important
+      }
+    }
+
+    .mobile-header {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--bg-base);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 40
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Mobile Header -->
+  <div class="mobile-header">
+    <button id="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div
+        style="width:28px;height:28px;background:linear-gradient(135deg,var(--purple),var(--cyan));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px">
+        📚</div>
+      <span style="font-weight:800;font-size:16px">StudyFlow</span>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button onclick="showPage('study')"
+        style="background:none;border:none;color:var(--text-sub);font-size:18px;cursor:pointer"><i
+          class="fas fa-stopwatch"></i></button>
+      <button onclick="openReminderSettings()"
+        style="background:none;border:none;color:var(--text-sub);font-size:18px;cursor:pointer"><i
+          class="fas fa-bell"></i></button>
+    </div>
+  </div>
+
+  <!-- Sidebar Overlay -->
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="logo">
+      <div class="logo-icon">📚</div>
+      <div class="logo-text">StudyFlow</div>
+    </div>
+    <nav>
+      <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard');closeSidebar()">
+        <i class="fas fa-chart-pie"></i> ダッシュボード
+      </button>
+      <button class="nav-btn" id="nav-study" onclick="showPage('study');closeSidebar()">
+        <i class="fas fa-stopwatch"></i> 学習タイマー
+      </button>
+      <button class="nav-btn" id="nav-calendar" onclick="showPage('calendar');closeSidebar()">
+        <i class="fas fa-calendar-alt"></i> カレンダー
+      </button>
+      <button class="nav-btn" id="nav-todo" onclick="showPage('todo');closeSidebar()">
+        <i class="fas fa-check-square"></i> ToDoリスト
+      </button>
+      <button class="nav-btn" id="nav-sync" onclick="openSyncModal();closeSidebar()">
+        <i class="fas fa-cloud-upload-alt" style="color:var(--cyan)"></i> クラウド同期
+      </button>
+      <button class="nav-btn" id="nav-notify" onclick="openReminderSettings();closeSidebar()">
+        <i class="fas fa-bell"></i> リマインダー通知
+      </button>
+      <button class="nav-btn" id="nav-notify" onclick="openReminderSettings();closeSidebar()">
+        <i class="fas fa-bell"></i> リマインダー通知
+      </button>
+      <button class="nav-btn" id="nav-sport" onclick="showPage('sport');closeSidebar()">
+        <i class="fas fa-running"></i> スポーツ
+      </button>
+      <button class="nav-btn" id="nav-workout" onclick="showPage('workout');closeSidebar()">
+        <i class="fas fa-dumbbell"></i> 筋トレ記録
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="status-card">
+        <div class="label">ステータス</div>
+        <div class="status-row">本日の学習 <span class="val" id="side-today">0分</span></div>
+        <div class="status-row">連続記録 <span class="val" id="side-streak">0日</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main id="main">
+
+    <!-- Dashboard -->
+    <div class="page active" id="page-dashboard">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <h1 class="page-title" style="margin:0">ダッシュボード</h1>
+        <span style="color:var(--text-muted);font-size:14px" id="dash-date"></span>
+      </div>
+      <div class="grid-4" id="stat-cards"></div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="section-title">週間学習推移 (勉強)</div>
+          <div class="chart-wrap"><canvas id="chart-weekly-study"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="section-title">週間走行推移 (ランニング)</div>
+          <div class="chart-wrap"><canvas id="chart-weekly-sport"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="section-title">科目別比率</div>
+          <div class="chart-wrap"><canvas id="chart-subject"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">本日の記録</div>
+        <div id="today-sessions"></div>
+      </div>
+    </div>
+
+    <!-- Study Timer -->
+    <div class="page" id="page-study">
+      <h1 class="page-title">学習タイマー</h1>
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:24px">
+        <div class="card" style="text-align:center">
+          <div class="form-group" style="max-width:320px;margin:0 auto 0;display:flex;gap:10px">
+            <div style="flex:1">
+              <label class="form-label">学習科目</label>
+              <select id="timer-subject"></select>
+            </div>
+            <div style="flex:1">
+              <label class="form-label">学習内容</label>
+              <select id="timer-detail">
+                <option value="テキスト">📖 テキスト</option>
+                <option value="問題集">✍️ 問題集</option>
+                <option value="動画学習">📺 動画学習</option>
+                <option value="アプリ">📱 アプリ</option>
+                <option value="その他">💡 その他</option>
+              </select>
+            </div>
+          </div>
+          <div class="timer-display" id="timer-display">00:00:00</div>
+          <div style="display:flex;gap:12px;justify-content:center;margin-bottom:16px">
+            <button class="btn btn-primary btn-lg" id="btn-timer" onclick="toggleTimer()">
+              <i class="fas fa-play"></i> 開始
+            </button>
+            <button class="btn btn-ghost btn-lg" onclick="resetTimer()">
+              <i class="fas fa-undo"></i>
+            </button>
+          </div>
+          <div id="timer-status" style="color:var(--text-muted);font-size:13px"></div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="section-title">手動で記録追加</div>
+            <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <label class="form-label">科目</label>
+                <select id="manual-sub"></select>
+              </div>
+              <div>
+                <label class="form-label">学習内容</label>
+                <select id="manual-detail">
+                  <option value="テキスト">📖 テキスト</option>
+                  <option value="問題集">✍️ 問題集</option>
+                  <option value="動画学習">📺 動画学習</option>
+                  <option value="アプリ">📱 アプリ</option>
+                  <option value="その他">💡 その他</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <label class="form-label">時間（分）</label>
+                <input type="number" id="manual-dur" placeholder="45" min="1" max="600">
+              </div>
+              <div>
+                <label class="form-label">メモ（任意）</label>
+                <input type="text" id="manual-note" placeholder="例: 第3章">
+              </div>
+            </div>
+            <button class="btn btn-success" style="width:100%" onclick="addManualRecord()">
+              <i class="fas fa-plus"></i> 記録を保存
+            </button>
+          </div>
+          <div class="card">
+            <div class="section-title">本日の記録</div>
+            <div id="study-today-list"></div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="section-title">科目・内容の管理</div>
+            <div id="master-tags-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+            <div style="display:flex;gap:10px;margin-bottom:12px">
+              <input type="text" id="new-subject-inline" placeholder="新科目 (例: 数学)" style="flex:1"
+                onkeypress="if(event.key==='Enter')addSubjectInline()">
+              <button class="btn btn-primary btn-icon" onclick="addSubjectInline()"><i class="fas fa-plus"></i></button>
+            </div>
+            <div style="display:flex;gap:10px">
+              <input type="text" id="new-detail-inline" placeholder="新内容 (例: 過去問)" style="flex:1"
+                onkeypress="if(event.key==='Enter')addDetailInline()">
+              <button class="btn btn-primary btn-icon" onclick="addDetailInline()"><i class="fas fa-plus"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Calendar -->
+    <div class="page" id="page-calendar">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h1 class="page-title" style="margin:0" id="cal-title">2025年3月</h1>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="btn btn-ghost btn-icon" onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+          <button class="btn btn-ghost btn-icon" onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+          <div class="tab-group" style="margin:0">
+            <button class="tab-pill active" id="cal-tab-plan" onclick="setCalMode('plan')">予定 (Plan)</button>
+            <button class="tab-pill" id="cal-tab-exec" onclick="setCalMode('exec')">実績 (Exec)</button>
+          </div>
+          <button class="btn btn-primary" id="btn-add-plan" onclick="openPlanModal()"><i class="fas fa-plus"></i>
+            予定追加</button>
+        </div>
+      </div>
+      <div id="calendar-container"></div>
+    </div>
+
+    <!-- ToDo -->
+    <div class="page" id="page-todo">
+      <h1 class="page-title">ToDoリスト</h1>
+      <div class="card" style="margin-bottom:16px;display:flex;gap:12px;align-items:flex-end">
+        <div style="flex:1">
+          <label class="form-label">タスク名</label>
+          <input type="text" id="todo-input" placeholder="次のタスクを入力..." onkeypress="if(event.key==='Enter')addTodo()">
+        </div>
+        <div style="width:120px">
+          <label class="form-label">優先度</label>
+          <select id="todo-prio">
+            <option>高</option>
+            <option selected>中</option>
+            <option>低</option>
+          </select>
+        </div>
+        <div style="width:140px">
+          <label class="form-label">科目</label>
+          <select id="todo-sub"></select>
+        </div>
+        <button class="btn btn-primary" style="height:42px" onclick="addTodo()"><i class="fas fa-plus"></i></button>
+      </div>
+      <div class="tab-group">
+        <button class="tab-pill active" id="filter-all" onclick="setTodoFilter('all')">すべて</button>
+        <button class="tab-pill" id="filter-pending" onclick="setTodoFilter('pending')">未完了</button>
+        <button class="tab-pill" id="filter-done" onclick="setTodoFilter('done')">完了済み</button>
+      </div>
+      <div id="todo-list"></div>
+    </div>
+
+
+    <!-- Sport Page -->
+    <div class="page" id="page-sport">
+      <h1 class="page-title">スポーツ記録</h1>
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title">記録を追加</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label class="form-label">日付</label>
+            <input type="date" id="sport-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">カテゴリー</label>
+            <select id="sport-category" onchange="toggleSportLocation()">
+              <option value="Road">🛣️ Road</option>
+              <option value="Trail Run">⛰️ Trail Run</option>
+              <option value="Treadmill">🏃 Treadmill</option>
+            </select>
+          </div>
+        </div>
+        <div id="sport-location-group" class="form-group" style="display:none">
+          <label class="form-label">場所</label>
+          <input type="text" id="sport-location" placeholder="例: ○○山">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label class="form-label">距離 (km)</label>
+            <input type="number" id="sport-distance" placeholder="例: 5.2" min="0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">時間 (分)</label>
+            <input type="number" id="sport-duration" placeholder="例: 30" min="1">
+          </div>
+        </div>
+        <button class="btn btn-success" style="width:100%" onclick="addSportRecord()">
+          <i class="fas fa-plus"></i> 記録を保存
+        </button>
+      </div>
+      <div class="card">
+        <div class="section-title">記録一覧</div>
+        <div id="sport-list"></div>
+      </div>
+    </div>
+    <!-- Workout Page -->
+    <div class="page" id="page-workout">
+      <h1 class="page-title">筋トレ記録 (Bodybuilding Mode)</h1>
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-title">トレーニング記録を追加</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group">
+              <label class="form-label">日付</label>
+              <input type="date" id="wo-date">
+            </div>
+            <div class="form-group">
+              <label class="form-label">ターゲット部位</label>
+              <select id="wo-part">
+                <option value="胸">胸 (Chest)</option>
+                <option value="背中">背中 (Back)</option>
+                <option value="脚">脚 (Legs)</option>
+                <option value="肩">肩 (Shoulders)</option>
+                <option value="腕">腕 (Arms)</option>
+                <option value="腹筋">腹筋 (Abs)</option>
+                <option value="全身">全身 (Full Body)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">種目名</label>
+            <input type="text" id="wo-exercise" list="wo-exercise-list" placeholder="例: ベンチプレス">
+            <datalist id="wo-exercise-list"></datalist>
+          </div>
+
+          <div id="wo-sets-container">
+            <!-- Sets will be added here -->
+          </div>
+
+          <div style="display:flex;gap:10px;margin-bottom:16px">
+            <button class="btn btn-ghost" style="flex:1" onclick="addWorkoutSet()">
+              <i class="fas fa-plus"></i> セット追加
+            </button>
+            <button class="btn btn-ghost" style="flex:1" onclick="copyLastWorkoutSet()">
+              <i class="fas fa-copy"></i> 前セットを複製
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">フォームの質 / コンディション</label>
+            <select id="wo-form">
+              <option value="Excellent">🌟 Excellent (完璧)</option>
+              <option value="Good" selected>✅ Good (良好)</option>
+              <option value="Fair">⚠️ Fair (並)</option>
+              <option value="Poor">❌ Poor (崩れた)</option>
+            </select>
+          </div>
+
+          <button class="btn btn-success" style="width:100%" onclick="saveWorkoutRecord()">
+            <i class="fas fa-check"></i> トレーニング記録を保存
+          </button>
+        </div>
+
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="section-title"><span id="wo-summary-date">本日</span>の総ボリューム</div>
+            <div style="display:flex;align-items:center;gap:15px">
+              <div style="text-align:center;flex:1">
+                <div style="font-size:12px;color:var(--text-muted)">Total Load</div>
+                <div style="font-size:24px;font-weight:800;color:var(--purple-light)" id="wo-total-volume">0<span
+                    style="font-size:14px">kg</span></div>
+              </div>
+              <div style="text-align:center;flex:1">
+                <div style="font-size:12px;color:var(--text-muted)">Total Sets</div>
+                <div style="font-size:24px;font-weight:800;color:var(--cyan)" id="wo-total-sets">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="section-title">記録一覧</div>
+            <div id="workout-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Plan -->
+  <div class="modal-overlay" id="modal-plan">
+    <div class="modal-box">
+      <div class="modal-title" id="plan-modal-title">📅 計画を追加</div>
+      <input type="hidden" id="plan-edit-id">
+      <div class="form-group">
+        <label class="form-label">科目（大項目）</label>
+        <select id="plan-subject"></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">開始日</label>
+          <input type="date" id="plan-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label">終了日</label>
+          <input type="date" id="plan-end">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">目標メモ</label>
+        <input type="text" id="plan-note" placeholder="例: 基礎固め">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="plan-delete-btn" style="margin-right:auto;display:none"
+          onclick="deletePlan()">削除</button>
+        <button class="btn btn-ghost" onclick="closeModal('modal-plan')">キャンセル</button>
+        <button class="btn btn-primary" onclick="savePlan()">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Sync -->
+  <div class="modal-overlay" id="modal-sync">
+    <div class="modal-box" style="max-width:500px">
+      <div class="modal-title"><i class="fas fa-sync"></i> クラウド同期 (Googleシート)</div>
+
+      <div class="card-sm" style="background:rgba(14,165,233,.1);margin-bottom:16px;font-size:12px;color:var(--cyan)">
+        <i class="fas fa-info-circle"></i> この機能を使うと、Macとスマホで全データを同期できます。
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">GAS Web App URL</label>
+        <input type="text" id="sync-url" placeholder="https://script.google.com/macros/s/..." style="width:100%">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+          ※1回設定すれば保存されます。
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <button class="btn btn-primary" onclick="syncWithCloud()">
+          <i class="fas fa-cloud-download-alt"></i> 今すぐ同期
+        </button>
+        <button class="btn btn-ghost" onclick="openGasSetup()">
+          <i class="fas fa-book"></i> 手順確認
+        </button>
+      </div>
+
+      <div id="sync-status" style="font-size:11px;text-align:center;color:var(--text-muted)">
+        未同期
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('modal-sync')">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: GAS Setup -->
+  <div class="modal-overlay" id="modal-gas-setup">
+    <div class="modal-box" style="width:90%;max-width:600px;max-height:80vh;overflow-y:auto">
+      <div class="modal-title">セットアップ手順</div>
+      <div style="font-size:13px;line-height:1.6;color:var(--text-sub)">
+        <ol style="padding-left:20px">
+          <li>新しいGoogleスプレッドシートを作成し、名前を「StudyFlow_Backup」にします。</li>
+          <li>上部メニュー [拡張機能] → [Apps Script] を開きます。</li>
+          <li>エディタの内容を全て消し、以下のコードを貼り付けます：</li>
+        </ol>
+        <pre
+          style="background:#000;padding:10px;border-radius:6px;overflow-x:auto;color:#0f0;font-size:11px;user-select:all">
+function doPost(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheets()[0];
+  const data = JSON.parse(e.postData.contents);
+  sheet.getRange(1, 1).setValue(JSON.stringify(data));
+  return ContentService.createTextOutput(JSON.stringify({status:"ok", data: data}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+function doGet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheets()[0];
+  const val = sheet.getRange(1, 1).getValue();
+  return ContentService.createTextOutput(val || '{"records":[]}')
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+        <ol start="4" style="padding-left:20px">
+          <li>右上の [デプロイ] → [新しいデプロイ] を選択。</li>
+          <li>種類：ウェブアプリ、実行ユーザー：自分、アクセスできるユーザー：全員。</li>
+          <li>[デプロイ] を実行し、発行された <b>ウェブアプリのURL</b> をコピーしてアプリに貼り付けます。</li>
+        </ol>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="closeModal('modal-gas-setup')">りょうかい</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Reminder -->
+  <div class="modal-overlay" id="modal-reminder">
+    <div class="modal-box">
+      <div class="modal-title">🔔 学習リマインダー設定</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">設定した時刻にブラウザ通知でお知らせします。<br>※ブラウザの通知許可が必要です。
+      </div>
+      <div id="reminder-list" style="margin-bottom:16px"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        <input type="time" id="new-reminder-time" style="flex:1">
+        <input type="text" id="new-reminder-label" placeholder="例: 朝の学習タイム" style="flex:2">
+        <button class="btn btn-primary btn-icon" onclick="addReminder()"><i class="fas fa-plus"></i></button>
+      </div>
+      <div id="notif-perm-status" style="font-size:12px;margin-top:8px"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('modal-reminder')">閉じる</button>
+        <button class="btn btn-primary" onclick="requestNotifPerm()"><i class="fas fa-bell"></i> 通知を許可する</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Reminder Banner -->
+  <div id="reminder-banner">
+    <i class="fas fa-bell"></i>
+    <div>
+      <div style="font-weight:700" id="reminder-banner-title">学習リマインダー</div>
+      <div style="font-size:12px;opacity:.85" id="reminder-banner-body"></div>
+    </div>
+    <button onclick="document.getElementById('reminder-banner').classList.remove('show')"
+      style="background:none;border:none;color:#fff;margin-left:auto;cursor:pointer;font-size:16px">×</button>
+  </div>
+
+  <!-- Notification toast -->
+  <div class="notif" id="notif">
+    <i class="fas fa-check-circle" style="color:var(--emerald)"></i>
+    <span id="notif-text">保存しました</span>
+  </div>
+
+  <script>
+    // ============ STATE ============
+    const STORAGE_KEY = 'studyflow_v2';
+    let S = {
+      records: [],
+      plans: [],
+      todos: [],
+      streak: 0,
+      pomos: 0,
+      subjects: ['AI', '化学', '数学', '英語', 'プログラミング', 'その他'],
+      details: ['テキスト', '問題集', '動画学習', 'アプリ', 'その他'],
+      syncUrl: ''
+    };
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(S));
+      updateSidebar();
+    }
+    function load() {
+      const d = localStorage.getItem(STORAGE_KEY);
+      if (d) {
+        S = JSON.parse(d);
+        // マイグレーション: typeフィールドの補完
+        if (S.records) {
+          S.records.forEach(r => { if (!r.type) r.type = 'study'; });
+        }
+        // マイグレーション
+        if (!S.plans) S.plans = [];
+        if (S.details || !S.details) { // detailマスタがない場合や再定義
+          if (!S.details) S.details = ['テキスト', '問題集', '動画学習', 'アプリ', 'その他'];
+        }
+        if (S.events) { S.plans = S.events.map(e => ({ id: e.id, subject: e.type, start: e.date, end: e.date, note: e.title })); delete S.events; }
+        return;
+      }
+      // 初回起動
+      S.plans = [];
+      S.details = ['テキスト', '問題集', '動画学習', 'アプリ', 'その他'];
+      save();
+    }
+
+    // ============ MOBILE SIDEBAR ============
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebar-overlay').classList.toggle('open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('open');
+    }
+
+    // ============ PAGES ============
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('page-' + name).classList.add('active');
+      const nb = document.getElementById('nav-' + name);
+      if (nb) nb.classList.add('active');
+      renders[name]?.();
+    }
+
+    const renders = {
+      dashboard: renderDashboard,
+      study: renderStudy,
+      pomodoro: renderPomodoro,
+      calendar: renderCalendar,
+      todo: renderTodo,
+      sport: renderSport,
+      workout: renderWorkout
+    };
+
+    // ============ UTIL ============
+    const today = () => new Date().toISOString().split('T')[0];
+    const fmtMin = m => m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+    const colors = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#f43f5e', '#6366f1', '#ec4899'];
+    const subColor = s => { const i = S.subjects.indexOf(s); return colors[i % colors.length]; };
+
+    function notify(msg) {
+      const n = document.getElementById('notif');
+      document.getElementById('notif-text').textContent = msg;
+      n.classList.add('show');
+      setTimeout(() => n.classList.remove('show'), 2500);
+    }
+
+    function updateSidebar() {
+      const todayStudyRecs = S.records.filter(r => r.date === today() && r.type === 'study');
+      const tot = todayStudyRecs.reduce((s, r) => s + r.duration, 0);
+      document.getElementById('side-today').textContent = fmtMin(tot);
+      const dayCount = new Set(S.records.map(r => r.date)).size;
+      document.getElementById('side-streak').textContent = S.streak + '日';
+    }
+
+    // ============ DASHBOARD ============
+    let charts = {};
+    function renderDashboard() {
+      document.getElementById('dash-date').textContent =
+        new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+
+      // 勉強記録のみに限定
+      const todayStudyRecs = S.records.filter(r => r.date === today() && r.type === 'study');
+      const todayStudyMin = todayStudyRecs.reduce((s, r) => s + r.duration, 0);
+
+      const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 6);
+      const weekStartStr = weekStart.toISOString().split('T')[0];
+      const weekStudyRecs = S.records.filter(r => r.date >= weekStartStr && r.type === 'study');
+      const weekStudyMin = weekStudyRecs.reduce((s, r) => s + r.duration, 0);
+
+      // スポーツ記録
+      const todaySportRecs = S.records.filter(r => r.date === today() && r.type === 'sport');
+      const todaySportMin = todaySportRecs.reduce((s, r) => s + r.duration, 0);
+
+      document.getElementById('stat-cards').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label"><i class="fas fa-clock text-purple"></i> 本日の学習</div>
+      <div class="stat-value text-purple">${fmtMin(todayStudyMin)}</div>
+      <div class="stat-sub">本日の記録</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label"><i class="fas fa-fire text-rose"></i> 連続記録</div>
+      <div class="stat-value text-rose">${S.streak}<span style="font-size:20px;margin-left:4px">日</span></div>
+      <div class="stat-sub">継続は力なり！</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label"><i class="fas fa-calendar-week text-cyan"></i> 今週合計(学習)</div>
+      <div class="stat-value text-cyan">${fmtMin(weekStudyMin)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label"><i class="fas fa-dumbbell text-purple"></i> 本日の筋トレ</div>
+      <div class="stat-value text-purple" id="dash-wo-vol">0<span style="font-size:16px">kg</span></div>
+      <div class="stat-sub" id="dash-wo-sets">0セット</div>
+    </div>
+  `;
+
+      // 週間学習・走行推移の各項目を取得
+      const labels = [];
+      const studyDetails = ['テキスト', '問題集', '動画学習', 'アプリ', 'その他'];
+      const studyDetailData = {
+        'テキスト': [], '問題集': [], '動画学習': [], 'アプリ': [], 'その他': []
+      };
+      const sportData = [];
+      const workoutData = [];
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const ds = d.toISOString().split('T')[0];
+        labels.push(['日', '月', '火', '水', '木', '金', '土'][d.getDay()]);
+
+        // 勉強データ（詳細ごと）
+        studyDetails.forEach(det => {
+          const val = S.records.filter(r => r.date === ds && r.type === 'study' && r.detail === det)
+            .reduce((s, r) => s + r.duration, 0);
+          studyDetailData[det].push(val);
+        });
+
+        // スポーツデータ
+        sportData.push(S.records.filter(r => r.date === ds && r.type === 'sport').reduce((s, r) => s + r.duration, 0));
+
+        // 筋トレデータ (Volume)
+        const dailyWorkoutVolume = S.records.filter(r => r.date === ds && r.type === 'workout')
+          .reduce((s, r) => s + (r.sets ? r.sets.reduce((ss, st) => ss + (st.weight * st.reps), 0) : 0), 0);
+        workoutData.push(dailyWorkoutVolume);
+      }
+
+      // 筋トレ統計の更新
+      const todayWO = S.records.filter(r => r.date === today() && r.type === 'workout');
+      const todayWOVol = todayWO.reduce((s, r) => s + (r.sets ? r.sets.reduce((ss, st) => ss + (st.weight * st.reps), 0) : 0), 0);
+      const todayWOSets = todayWO.reduce((s, r) => s + (r.sets ? r.sets.length : 0), 0);
+      const woVolEl = document.getElementById('dash-wo-vol');
+      const woSetsEl = document.getElementById('dash-wo-sets');
+      if (woVolEl) woVolEl.innerHTML = `${todayWOVol}<span style="font-size:16px">kg</span>`;
+      if (woSetsEl) woSetsEl.textContent = `${todayWOSets}セット`;
+
+      // Weekly study chart (Stacked by Details with Icons)
+      if (charts.weeklyStudy) charts.weeklyStudy.destroy();
+      const detailIcons = { 'テキスト': '○', '問題集': '△', '動画学習': '□', 'アプリ': '☆', 'その他': '◇' };
+      const detailColors = { 'テキスト': '#8b5cf6', '問題集': '#a78bfa', '動画学習': '#6366f1', 'アプリ': '#c084fc', 'その他': '#e879f9' };
+
+      charts.weeklyStudy = new Chart(document.getElementById('chart-weekly-study'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: studyDetails.map(det => ({
+            label: `${detailIcons[det]} ${det}`,
+            data: studyDetailData[det],
+            backgroundColor: detailColors[det],
+            borderRadius: 4
+          }))
+        },
+        options: {
+          plugins: {
+            legend: {
+              display: true,
+              labels: { color: '#94a3b8', font: { size: 10 }, padding: 8, usePointStyle: true }
+            }
+          },
+          scales: {
+            x: { stacked: true, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#64748b' } },
+            y: { stacked: true, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#64748b' } }
+          },
+          responsive: true, maintainAspectRatio: false
+        }
+      });
+
+      // Weekly sport chart
+      if (charts.weeklySport) charts.weeklySport.destroy();
+      charts.weeklySport = new Chart(document.getElementById('chart-weekly-sport'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: '走行 (分)', data: sportData, backgroundColor: '#10b981', borderRadius: 4, yAxisID: 'y' },
+            { label: '筋トレ (Vol/10)', data: workoutData.map(v => v / 10), backgroundColor: '#f59e0b', borderRadius: 4, yAxisID: 'y1' }
+          ]
+        },
+        options: {
+          plugins: { legend: { display: true, labels: { color: '#94a3b8', font: { size: 10 }, usePointStyle: true } } },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#64748b' } },
+            y: { position: 'left', grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#64748b' } },
+            y1: { position: 'right', grid: { display: false }, ticks: { color: '#f59e0b' }, title: { display: true, text: 'WO Volume / 10', color: '#f59e0b' } }
+          },
+          responsive: true, maintainAspectRatio: false
+        }
+      });
+
+      // Subject pie (Study records only)
+      const subTotals = {};
+      S.records.filter(r => r.type === 'study').forEach(r => {
+        subTotals[r.subject] = (subTotals[r.subject] || 0) + r.duration;
+      });
+      const subs = Object.keys(subTotals);
+      if (charts.subject) charts.subject.destroy();
+      charts.subject = new Chart(document.getElementById('chart-subject'), {
+        type: 'doughnut',
+        data: { labels: subs, datasets: [{ data: subs.map(s => subTotals[s]), backgroundColor: subs.map(s => subColor(s)), borderWidth: 0, hoverOffset: 12 }] },
+        options: { cutout: '68%', plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 12 }, padding: 12 } } }, responsive: true, maintainAspectRatio: false }
+      });
+
+      // Today sessions (All)
+      const todayAllRecs = S.records.filter(r => r.date === today());
+      const todaySorted = [...todayAllRecs].sort((a, b) => b.id - a.id);
+      document.getElementById('today-sessions').innerHTML = todaySorted.length ? todaySorted.map(r => `
+    <div class="session-item">
+      <div class="session-dot" style="background:${r.type === 'sport' ? 'var(--emerald)' : (r.type === 'workout' ? 'var(--amber)' : subColor(r.subject))}"></div>
+      <div style="flex:1">
+        <div class="session-sub">${r.type === 'sport' ? 'ランニング' : (r.type === 'workout' ? r.exercise : r.subject)} ${r.detail ? `<span style="font-weight:400;font-size:11px;color:var(--text-muted)">(${r.detail})</span>` : ''}</div>
+        ${r.note ? `<div style="font-size:12px;color:var(--text-muted)">${r.note}</div>` : ''}
+        ${r.type === 'sport' ? `<div style="font-size:11px;color:var(--emerald)">${(r.distance / (r.duration / 60)).toFixed(1)} km/h (${(r.duration / r.distance).toFixed(2)} min/km)</div>` : ''}
+        ${r.type === 'workout' ? `<div style="font-size:11px;color:var(--amber)">${r.sets.reduce((s, st) => s + (st.weight * st.reps), 0)}kg (${r.sets.length}セット)</div>` : ''}
+      </div>
+      <div class="session-dur">${r.type === 'sport' ? r.duration + '分' : (r.type === 'workout' ? '' : fmtMin(r.duration))}</div>
+    </div>
+  `).join('') : '<div style="color:var(--text-muted);font-size:13px;padding:12px 0">本日の記録はまだありません</div>';
+    }
+
+    // ============ STUDY TIMER ============
+    let timerState = { running: false, seconds: 0, interval: null };
+
+    function renderStudy() {
+      populateSubjectSelects();
+      renderStudyList();
+    }
+
+    function populateSubjectSelects() {
+      ['timer-subject', 'manual-sub', 'todo-sub', 'plan-subject'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = S.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+      });
+      ['timer-detail', 'manual-detail'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = S.details.map(d => `<option value="${d}">${d}</option>`).join('');
+      });
+      renderMasterTags();
+    }
+
+    function renderMasterTags() {
+      const el = document.getElementById('master-tags-list');
+      if (!el) return;
+      let html = '<div style="width:100%;font-size:11px;color:var(--text-muted);margin-bottom:4px">登録済み科目:</div>';
+      html += S.subjects.map(s => `<span class="badge" style="background:var(--bg-card2);border:1px solid var(--border)">${s} <i class="fas fa-times" style="margin-left:4px;cursor:pointer" onclick="deleteMasterItem('subjects','${s}')"></i></span>`).join('');
+      html += '<div style="width:100%;font-size:11px;color:var(--text-muted);margin-top:8px;margin-bottom:4px">登録済み内容:</div>';
+      html += S.details.map(d => `<span class="badge" style="background:var(--bg-card2);border:1px solid var(--border)">${d} <i class="fas fa-times" style="margin-left:4px;cursor:pointer" onclick="deleteMasterItem('details','${d}')"></i></span>`).join('');
+      el.innerHTML = html;
+    }
+
+    function addSubjectInline() {
+      const v = document.getElementById('new-subject-inline').value.trim();
+      if (!v || S.subjects.includes(v)) return;
+      S.subjects.push(v);
+      document.getElementById('new-subject-inline').value = '';
+      save(); populateSubjectSelects(); notify(`「${v}」を追加しました`);
+    }
+
+    function addDetailInline() {
+      const v = document.getElementById('new-detail-inline').value.trim();
+      if (!v || S.details.includes(v)) return;
+      S.details.push(v);
+      document.getElementById('new-detail-inline').value = '';
+      save(); populateSubjectSelects(); notify(`「${v}」を追加しました`);
+    }
+
+    function deleteMasterItem(type, val) {
+      if (S[type].length <= 1) return;
+      if (!confirm(`「${val}」を削除しますか？`)) return;
+      S[type] = S[type].filter(x => x !== val);
+      save(); populateSubjectSelects();
+    }
+
+    function toggleTimer() {
+      const btn = document.getElementById('btn-timer');
+      if (timerState.running) {
+        if (!confirm('学習を終了して記録しますか？')) return;
+        clearInterval(timerState.interval);
+        timerState.running = false;
+        const mins = Math.round(timerState.seconds / 60);
+        if (mins >= 1) {
+          const sub = document.getElementById('timer-subject').value;
+          const det = document.getElementById('timer-detail').value;
+          S.records.push({ id: Date.now(), subject: sub, detail: det, duration: mins, date: today(), note: '', type: 'study' });
+          save(); notify(`${sub}(${det}) ${mins}分 記録しました`);
+        }
+        timerState.seconds = 0;
+        document.getElementById('timer-display').textContent = '00:00:00';
+        document.getElementById('timer-status').textContent = '';
+        btn.innerHTML = '<i class="fas fa-play"></i> 開始';
+        btn.style.background = 'var(--purple)';
+        renderStudyList();
+      } else {
+        timerState.running = true;
+        btn.innerHTML = '<i class="fas fa-stop"></i> 終了して保存';
+        btn.style.background = 'var(--rose)';
+        timerState.interval = setInterval(() => {
+          timerState.seconds++;
+          const h = String(Math.floor(timerState.seconds / 3600)).padStart(2, '0');
+          const m = String(Math.floor(timerState.seconds % 3600 / 60)).padStart(2, '0');
+          const s = String(timerState.seconds % 60).padStart(2, '0');
+          document.getElementById('timer-display').textContent = `${h}:${m}:${s}`;
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      if (timerState.running) { clearInterval(timerState.interval); timerState.running = false; }
+      timerState.seconds = 0;
+      document.getElementById('timer-display').textContent = '00:00:00';
+      document.getElementById('btn-timer').innerHTML = '<i class="fas fa-play"></i> 開始';
+      document.getElementById('btn-timer').style.background = 'var(--purple)';
+    }
+
+    function addManualRecord() {
+      const sub = document.getElementById('manual-sub').value;
+      const det = document.getElementById('manual-detail').value;
+      const dur = parseInt(document.getElementById('manual-dur').value);
+      const note = document.getElementById('manual-note').value;
+      if (!dur || dur < 1) { alert('学習時間を入力してください'); return; }
+      S.records.push({ id: Date.now(), subject: sub, detail: det, duration: dur, date: today(), note, type: 'study' });
+      document.getElementById('manual-dur').value = '';
+      document.getElementById('manual-note').value = '';
+      save(); notify(`${sub} ${dur}分 追加しました`);
+      renderStudyList();
+    }
+
+    function renderStudyList() {
+      const todayRecs = S.records.filter(r => r.date === today()).sort((a, b) => b.id - a.id);
+      const el = document.getElementById('study-today-list');
+      if (!el) return;
+      el.innerHTML = todayRecs.length ? todayRecs.map(r => `
+    <div class="session-item">
+      <div class="session-dot" style="background:${subColor(r.subject)}"></div>
+      <div style="flex:1">
+        <div class="session-sub">${r.subject} <span style="font-weight:400;font-size:12px;color:var(--text-muted)">(${r.detail || 'なし'})</span></div>
+        ${r.note ? `<div style="font-size:12px;color:var(--text-muted)">${r.note}</div>` : ''}
+      </div>
+      <div class="session-dur">${fmtMin(r.duration)}</div>
+      <button onclick="deleteRecord(${r.id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px 8px;font-size:12px">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `).join('') : '<div style="color:var(--text-muted);font-size:13px">本日の記録はまだありません</div>';
+    }
+
+    function deleteRecord(id) {
+      S.records = S.records.filter(r => r.id !== id);
+      save(); renderStudyList();
+    }
+
+
+    function renderPomodoro() {
+      updatePomoDisplay();
+      renderPomoDots();
+    }
+
+
+    // ============ CALENDAR ============
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth();
+    let calMode = 'plan'; // 'plan' or 'exec'
+
+    function setCalMode(m) {
+      calMode = m;
+      document.querySelectorAll('#page-calendar .tab-pill').forEach(b => b.classList.remove('active'));
+      document.getElementById('cal-tab-' + m).classList.add('active');
+      document.getElementById('btn-add-plan').style.display = m === 'plan' ? 'inline-flex' : 'none';
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      const firstDay = new Date(calYear, calMonth, 1).getDay();
+      const todayStr = today();
+      document.getElementById('cal-title').textContent = `${calYear}年 ${calMonth + 1}月`;
+
+      let cells = '';
+      for (let i = 0; i < firstDay; i++) cells += '<div class="cal-cell empty"></div>';
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const ds = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const isToday = ds === todayStr;
+
+        let content = '';
+        if (calMode === 'plan') {
+          const plans = S.plans.filter(p => ds >= p.start && ds <= p.end);
+          content = plans.map(p => `
+            <div class="cal-event" style="background:${subColor(p.subject)}44;border-left:3px solid ${subColor(p.subject)}" 
+                 onclick="event.stopPropagation();openPlanEditModal(${p.id})">
+              ${p.subject}
+            </div>
+          `).join('');
+        } else {
+          const studyMin = S.records.filter(r => r.date === ds && r.type === 'study').reduce((a, b) => a + b.duration, 0);
+          const sportRecs = S.records.filter(r => r.date === ds && r.type === 'sport');
+          const sportMin = sportRecs.reduce((a, b) => a + b.duration, 0);
+
+          if (studyMin > 0) content += `<div class="cal-summary study">📚 ${fmtMin(studyMin)}</div>`;
+          if (sportMin > 0) content += `<div class="cal-summary sport">🏃 ${sportMin}m</div>`;
+
+          // 詳細アイコンの表示
+          const details = [...new Set(S.records.filter(r => r.date === ds && r.type === 'study').map(r => r.detail))];
+          const detailIcons = { 'テキスト': '○', '問題集': '△', '動画学習': '□', 'アプリ': '☆', 'その他': '◇' };
+          if (details.length) {
+            content += `<div style="font-size:10px;margin-top:2px;color:var(--text-muted)">${details.map(det => detailIcons[det] || '●').join(' ')}</div>`;
+          }
+        }
+
+        cells += `
+          <div class="cal-cell ${isToday ? 'today' : ''}" onclick="${calMode === 'plan' ? `openPlanModal('${ds}')` : ''}">
+            <div class="cal-date">${d}</div>
+            ${content}
+          </div>
+        `;
+      }
+      document.getElementById('calendar-container').innerHTML = `
+        <div class="cal-header">
+          ${['日', '月', '火', '水', '木', '金', '土'].map(d => `<div class="cal-day-name">${d}</div>`).join('')}
+        </div>
+        <div class="cal-grid">${cells}</div>
+      `;
+    }
+
+    function openPlanModal(date) {
+      populatePlanSubject();
+      document.getElementById('plan-edit-id').value = '';
+      document.getElementById('plan-modal-title').textContent = '📅 計画を追加';
+      document.getElementById('plan-start').value = date || today();
+      document.getElementById('plan-end').value = date || today();
+      document.getElementById('plan-note').value = '';
+      document.getElementById('plan-delete-btn').style.display = 'none';
+      document.getElementById('modal-plan').classList.add('open');
+    }
+
+    function openPlanEditModal(id) {
+      const p = S.plans.find(x => x.id === id);
+      if (!p) return;
+      populatePlanSubject();
+      document.getElementById('plan-edit-id').value = id;
+      document.getElementById('plan-modal-title').textContent = '📅 計画を編集';
+      document.getElementById('plan-subject').value = p.subject;
+      document.getElementById('plan-start').value = p.start;
+      document.getElementById('plan-end').value = p.end;
+      document.getElementById('plan-note').value = p.note || '';
+      document.getElementById('plan-delete-btn').style.display = 'inline-flex';
+      document.getElementById('modal-plan').classList.add('open');
+    }
+
+    function populatePlanSubject() {
+      document.getElementById('plan-subject').innerHTML = S.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+
+    function savePlan() {
+      const sub = document.getElementById('plan-subject').value;
+      const start = document.getElementById('plan-start').value;
+      const end = document.getElementById('plan-end').value;
+      if (!start || !end) { alert('日付を入力してください'); return; }
+      const editId = document.getElementById('plan-edit-id').value;
+      if (editId) {
+        const p = S.plans.find(x => x.id === parseInt(editId));
+        if (p) { p.subject = sub; p.start = start; p.end = end; p.note = document.getElementById('plan-note').value; }
+      } else {
+        S.plans.push({ id: Date.now(), subject: sub, start, end, note: document.getElementById('plan-note').value });
+      }
+      save(); closeModal('modal-plan'); renderCalendar();
+    }
+
+    function deletePlan() {
+      const id = parseInt(document.getElementById('plan-edit-id').value);
+      if (!confirm('この計画を削除しますか？')) return;
+      S.plans = S.plans.filter(p => p.id !== id);
+      save(); closeModal('modal-plan'); renderCalendar();
+    }
+
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+
+    // ============ SUBJECT MANAGER ============
+    function openSubjectManager() {
+      renderSubjectList();
+      document.getElementById('modal-subjects').classList.add('open');
+    }
+    function renderSubjectList() {
+      document.getElementById('subject-list').innerHTML = S.subjects.map((s, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="width:10px;height:10px;border-radius:50%;background:${subColor(s)};flex-shrink:0"></div>
+      <span style="flex:1;font-size:14px;font-weight:500">${s}</span>
+      <button onclick="deleteSubject(${i})" style="background:none;border:none;color:var(--rose);cursor:pointer;font-size:13px;padding:4px 8px">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `).join('');
+    }
+    function addSubject() {
+      const v = document.getElementById('new-subject').value.trim();
+      if (!v || S.subjects.includes(v)) { notify('科目名が重複または空です'); return; }
+      S.subjects.push(v);
+      document.getElementById('new-subject').value = '';
+      save(); renderSubjectList(); notify(`「${v}」を追加しました`);
+    }
+    function deleteSubject(i) {
+      if (S.subjects.length <= 1) { notify('最低1科目は必要です'); return; }
+      const name = S.subjects[i];
+      if (!confirm(`「${name}」を削除しますか？\n（この科目の記録は残ります）`)) return;
+      S.subjects.splice(i, 1);
+      save(); renderSubjectList(); notify(`「${name}」を削除しました`);
+    }
+
+    // ============ TODO ============
+    let todoFilter = 'all';
+
+    function renderTodo() {
+      populateSubjectSelects();
+      let list = [...S.todos];
+      if (todoFilter === 'pending') list = list.filter(t => !t.done);
+      if (todoFilter === 'done') list = list.filter(t => t.done);
+      list.sort((a, b) => {
+        const po = { 高: 0, 中: 1, 低: 2 };
+        return (a.done === b.done) ? po[a.priority] - po[b.priority] : a.done ? 1 : -1;
+      });
+      document.getElementById('todo-list').innerHTML = list.length ? list.map(t => `
+    <div class="todo-item ${t.done ? 'done' : ''}">
+      <div class="todo-check ${t.done ? 'checked' : ''}" onclick="toggleTodo(${t.id})">
+        ${t.done ? '<i class="fas fa-check" style="font-size:11px;color:#fff"></i>' : ''}
+      </div>
+      <div style="flex:1">
+        <div class="todo-text ${t.done ? 'done-text' : ''}">${t.title}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${t.subject || ''}</div>
+      </div>
+      <span class="prio-badge prio-${t.priority}">${t.priority}</span>
+      <button onclick="deleteTodo(${t.id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px 8px;font-size:13px">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `).join('') : '<div style="color:var(--text-muted);padding:20px 0;text-align:center">タスクがありません</div>';
+    }
+
+    function setTodoFilter(f) {
+      todoFilter = f;
+      document.querySelectorAll('.tab-pill').forEach(b => b.classList.remove('active'));
+      document.getElementById('filter-' + f).classList.add('active');
+      renderTodo();
+    }
+
+    function addTodo() {
+      const title = document.getElementById('todo-input').value.trim();
+      if (!title) return;
+      S.todos.push({ id: Date.now(), title, priority: document.getElementById('todo-prio').value, subject: document.getElementById('todo-sub')?.value || '', done: false });
+      document.getElementById('todo-input').value = '';
+      save(); notify('タスクを追加しました'); renderTodo();
+    }
+
+    function toggleTodo(id) {
+      const t = S.todos.find(x => x.id === id);
+      if (t) t.done = !t.done;
+      save(); renderTodo();
+    }
+
+    function deleteTodo(id) {
+      S.todos = S.todos.filter(t => t.id !== id);
+      save(); renderTodo();
+    }
+
+
+    // ============ SPORT ============
+    function toggleSportLocation() {
+      const cat = document.getElementById('sport-category').value;
+      document.getElementById('sport-location-group').style.display = cat === 'Trail Run' ? 'block' : 'none';
+    }
+
+    function renderSport() {
+      document.getElementById('sport-date').value = today();
+      const list = S.records.filter(r => r.type === 'sport').sort((a, b) => b.id - a.id);
+      document.getElementById('sport-list').innerHTML = list.length ? list.map(r => `
+    <div class="session-item">
+      <div class="session-dot" style="background:var(--emerald)"></div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:14px">${r.date} ${r.category || 'Running'} ${r.location ? ` - ${r.location}` : ''}</div>
+        <div style="font-size:12px;color:var(--text-sub)">
+          ${r.distance} km / ${r.duration} 分 
+          <span style="color:var(--emerald);font-weight:700;margin-left:8px">
+            <i class="fas fa-bolt"></i> ${(r.distance / (r.duration / 60)).toFixed(1)} km/h
+          </span>
+        </div>
+      </div>
+      <button onclick="deleteSportRecord(${r.id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px 8px;font-size:12px">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `).join('') : '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;text-align:center">まだスポーツの記録はありません</div>';
+    }
+
+    function addSportRecord() {
+      const date = document.getElementById('sport-date').value;
+      const cat = document.getElementById('sport-category').value;
+      const dist = parseFloat(document.getElementById('sport-distance').value);
+      const dur = parseInt(document.getElementById('sport-duration').value);
+      const loc = document.getElementById('sport-location').value;
+      if (!date || !dist || !dur) { notify('すべての項目を入力してください'); return; }
+      S.records.push({ id: Date.now(), type: 'sport', date, distance: dist, duration: dur, category: cat, location: loc });
+      save(); notify('スポーツ記録を保存しました');
+      document.getElementById('sport-distance').value = '';
+      document.getElementById('sport-duration').value = '';
+      document.getElementById('sport-location').value = '';
+      renderSport();
+    }
+
+    function deleteSportRecord(id) {
+      if (!confirm('この記録を削除しますか？')) return;
+      S.records = S.records.filter(r => r.id !== id);
+      save(); renderSport(); notify('記録を削除しました');
+    }
+
+
+    // ============ WORKOUT (BODYBUILDING) ============
+    let workoutSetCount = 0;
+
+    function renderWorkout() {
+      const dt = document.getElementById('wo-date').value || today();
+      document.getElementById('wo-date').value = dt;
+      document.getElementById('wo-date').onchange = () => { updateWorkoutList(); updateWorkoutSummary(); };
+
+      document.getElementById('wo-sets-container').innerHTML = '';
+      workoutSetCount = 0;
+      addWorkoutSet(); // Start with 1 set
+
+      updateExerciseSuggestions();
+      updateWorkoutList();
+      updateWorkoutSummary();
+    }
+
+    function updateExerciseSuggestions() {
+      const pastExes = [...new Set(S.records.filter(r => r.type === 'workout').map(r => r.exercise))];
+      document.getElementById('wo-exercise-list').innerHTML = pastExes.map(ex => `<option value="${ex}">`).join('');
+    }
+
+    function addWorkoutSet(values = { weight: '', reps: '', rpe: '8', rest: '90' }) {
+      workoutSetCount++;
+      const div = document.createElement('div');
+      div.className = 'card-sm';
+      div.style.marginBottom = '10px';
+      div.style.background = 'var(--bg-card2)';
+      div.id = 'wo-set-' + workoutSetCount;
+      div.innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:12px;font-weight:700;color:var(--text-sub)">SET ${workoutSetCount}</span>
+          <button onclick="removeWorkoutSet(${workoutSetCount})" style="background:none;border:none;color:var(--rose);cursor:pointer;font-size:12px">削除</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+          <div>
+            <label class="form-label">kg</label>
+            <input type="number" class="set-weight" value="${values.weight}" step="0.5" placeholder="0">
+          </div>
+          <div>
+            <label class="form-label">Reps</label>
+            <input type="number" class="set-reps" value="${values.reps}" placeholder="0">
+          </div>
+          <div>
+            <label class="form-label" title="1-10 (余力・強度指数)">RPE</label>
+            <input type="number" class="set-rpe" value="${values.rpe}" min="1" max="10" step="0.5">
+          </div>
+          <div>
+            <label class="form-label" title="秒">Rest(s)</label>
+            <input type="number" class="set-rest" value="${values.rest}" step="10">
+          </div>
+        </div>
+      `;
+      document.getElementById('wo-sets-container').appendChild(div);
+    }
+
+    function removeWorkoutSet(id) {
+      const el = document.getElementById('wo-set-' + id);
+      if (el) el.remove();
+    }
+
+    function copyLastWorkoutSet() {
+      const sets = document.querySelectorAll('#wo-sets-container > div');
+      if (sets.length === 0) { addWorkoutSet(); return; }
+      const last = sets[sets.length - 1];
+      const val = {
+        weight: last.querySelector('.set-weight').value,
+        reps: last.querySelector('.set-reps').value,
+        rpe: last.querySelector('.set-rpe').value,
+        rest: last.querySelector('.set-rest').value
+      };
+      addWorkoutSet(val);
+    }
+
+    function saveWorkoutRecord() {
+      const date = document.getElementById('wo-date').value;
+      const part = document.getElementById('wo-part').value;
+      const ex = document.getElementById('wo-exercise').value.trim();
+      const form = document.getElementById('wo-form').value;
+      if (!date || !ex) { notify('日付と種目名を入力してください'); return; }
+
+      const setDivs = document.querySelectorAll('#wo-sets-container > div');
+      const sets = Array.from(setDivs).map(div => ({
+        weight: parseFloat(div.querySelector('.set-weight').value) || 0,
+        reps: parseInt(div.querySelector('.set-reps').value) || 0,
+        rpe: parseFloat(div.querySelector('.set-rpe').value) || 0,
+        rest: parseInt(div.querySelector('.set-rest').value) || 0
+      })).filter(s => s.reps > 0);
+
+      if (sets.length === 0) { notify('有効なセット情報を入力してください'); return; }
+
+      S.records.push({ id: Date.now(), type: 'workout', date, part, exercise: ex, sets, formQuality: form });
+      save(); notify(`${ex} を記録しました`);
+      document.getElementById('wo-exercise').value = '';
+      renderWorkout();
+    }
+
+    function updateWorkoutList() {
+      const selDate = document.getElementById('wo-date').value;
+      const list = S.records.filter(r => r.type === 'workout' && r.date === selDate).sort((a, b) => b.id - a.id);
+      const title = selDate === today() ? '本日' : selDate;
+      document.getElementById('wo-summary-date').textContent = title;
+
+      document.getElementById('workout-list').innerHTML = list.length ? list.map(r => {
+        const vol = r.sets.reduce((s, st) => s + (st.weight * st.reps), 0);
+        return `
+          <div class="session-item" style="display:block;padding:12px 0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="badge" style="background:var(--amber);color:#fff">${r.part}</span>
+                <span style="font-weight:800;font-size:15px">${r.exercise}</span>
+              </div>
+              <button onclick="deleteWorkout(${r.id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer"><i class="fas fa-trash"></i></button>
+            </div>
+            <div style="font-size:12px;color:var(--text-sub);display:flex;gap:10px">
+              <span>Vol: <b>${vol}kg</b></span>
+              <span>Sets: ${r.sets.length}</span>
+              <span>Form: ${r.formQuality}</span>
+            </div>
+          </div>
+        `;
+      }).join('') : `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;text-align:center">${title}の記録はありません</div>`;
+    }
+
+    function deleteWorkout(id) {
+      if (!confirm('この筋トレ記録を削除しますか？')) return;
+      S.records = S.records.filter(r => r.id !== id);
+      save(); updateWorkoutList(); updateWorkoutSummary(); updateExerciseSuggestions();
+    }
+
+    function updateWorkoutSummary() {
+      const selDate = document.getElementById('wo-date').value;
+      const dtWO = S.records.filter(r => r.date === selDate && r.type === 'workout');
+      const dtWOVol = dtWO.reduce((s, r) => s + (r.sets ? r.sets.reduce((ss, st) => ss + (st.weight * st.reps), 0) : 0), 0);
+      const dtWOSets = dtWO.reduce((s, r) => s + (r.sets ? r.sets.length : 0), 0);
+      const elVol = document.getElementById('wo-total-volume');
+      const elSet = document.getElementById('wo-total-sets');
+      if (elVol) elVol.innerHTML = `${dtWOVol}<span style="font-size:14px">kg</span>`;
+      if (elSet) elSet.textContent = dtWOSets;
+    }
+
+
+    // ============ CLOUD SYNC ============
+    function openSyncModal() {
+      document.getElementById('sync-url').value = S.syncUrl || '';
+      document.getElementById('modal-sync').classList.add('open');
+    }
+
+    function openGasSetup() {
+      document.getElementById('modal-gas-setup').classList.add('open');
+    }
+
+    async function syncWithCloud() {
+      const url = document.getElementById('sync-url').value.trim();
+      if (!url) { alert('URLを入力してください'); return; }
+      S.syncUrl = url;
+      save();
+
+      const status = document.getElementById('sync-status');
+      status.textContent = '同期中...';
+
+      try {
+        // 1. クラウドからデータを取得 (GET)
+        const getRes = await fetch(url);
+        const cloudData = await getRes.json();
+
+        // 2. データのマージ (ID重複排除)
+        const mergeRecords = (local, cloud) => {
+          const combined = [...local, ...cloud];
+          const seen = new Set();
+          return combined.filter(r => {
+            if (seen.has(r.id)) return false;
+            seen.add(r.id); return true;
+          });
+        };
+
+        if (cloudData.records) {
+          S.records = mergeRecords(S.records, cloudData.records);
+          // 科目や内容マスタもクラウド優先で拡張
+          if (cloudData.subjects) S.subjects = [...new Set([...S.subjects, ...cloudData.subjects])];
+          if (cloudData.details) S.details = [...new Set([...S.details, ...cloudData.details])];
+          if (cloudData.plans) S.plans = mergeRecords(S.plans, cloudData.plans);
+        }
+
+        // 3. 最新の全データをクラウドに保存 (POST)
+        const postRes = await fetch(url, {
+          method: 'POST',
+          body: JSON.stringify(S)
+        });
+
+        status.textContent = '最終同期: ' + new Date().toLocaleTimeString();
+        notify('クラウドとの同期が完了しました！');
+        save();
+        renderDashboard();
+      } catch (err) {
+        console.error(err);
+        status.textContent = '同期エラー: GASのデプロイ設定を確認してください';
+        alert('同期に失敗しました。GASのURLが正しいか、全員へ公開の設定になっているか確認してください。');
+      }
+    }
+
+    // ============ SERVICE WORKER ============
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed:', err));
+      });
+    }
+
+
+    // ============ REMINDER / NOTIFICATIONS ============
+    function openReminderSettings() {
+      renderReminderList();
+      checkNotifPerm();
+      document.getElementById('modal-reminder').classList.add('open');
+    }
+    function renderReminderList() {
+      if (!S.reminders) S.reminders = [];
+      document.getElementById('reminder-list').innerHTML = S.reminders.length
+        ? S.reminders.map((r, i) => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <i class="fas fa-clock" style="color:var(--purple-light)"></i>
+        <span style="font-weight:700;font-family:monospace">${r.time}</span>
+        <span style="flex:1;color:var(--text-sub);font-size:13px">${r.label || '学習の時間です'}</span>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+          <input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleReminder(${i},this.checked)"> ON
+        </label>
+        <button onclick="deleteReminder(${i})" style="background:none;border:none;color:var(--rose);cursor:pointer"><i class="fas fa-trash"></i></button>
+      </div>`).join('')
+        : '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">リマインダーが設定されていません</div>';
+    }
+    function addReminder() {
+      const time = document.getElementById('new-reminder-time').value;
+      const label = document.getElementById('new-reminder-label').value.trim() || '学習の時間です！';
+      if (!time) { notify('時刻を選択してください'); return; }
+      if (!S.reminders) S.reminders = [];
+      S.reminders.push({ time, label, enabled: true });
+      document.getElementById('new-reminder-time').value = '';
+      document.getElementById('new-reminder-label').value = '';
+      save(); renderReminderList(); notify(`${time} にリマインダーを追加しました`);
+    }
+    function deleteReminder(i) {
+      S.reminders.splice(i, 1);
+      save(); renderReminderList();
+    }
+    function toggleReminder(i, val) {
+      S.reminders[i].enabled = val;
+      save();
+    }
+    function requestNotifPerm() {
+      if (!('Notification' in window)) { notify('このブラウザは通知非対応です'); return; }
+      Notification.requestPermission().then(p => {
+        checkNotifPerm();
+        if (p === 'granted') notify('🔔 通知が許可されました！');
+      });
+    }
+    function checkNotifPerm() {
+      const el = document.getElementById('notif-perm-status');
+      if (!el) return;
+      if (!('Notification' in window)) { el.textContent = 'このブラウザは通知非対応です'; el.style.color = 'var(--rose)'; return; }
+      const p = Notification.permission;
+      el.textContent = p === 'granted' ? '✅ 通知が許可されています' : p === 'denied' ? '❌ 通知がブロックされています（ブラウザ設定から変更してください）' : '⚠️ 通知の許可が必要です。下のボタンを押してください';
+      el.style.color = p === 'granted' ? 'var(--emerald)' : p === 'denied' ? 'var(--rose)' : 'var(--amber)';
+    }
+    function fireReminder(r) {
+      const banner = document.getElementById('reminder-banner');
+      document.getElementById('reminder-banner-title').textContent = '📚 ' + (r.label || '学習リマインダー');
+      document.getElementById('reminder-banner-body').textContent = r.time + ' の学習タイムです！';
+      banner.classList.add('show');
+      setTimeout(() => banner.classList.remove('show'), 8000);
+      if (Notification.permission === 'granted') {
+        new Notification('StudyFlow 学習リマインダー', { body: r.label + ' (' + r.time + ')', icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📚</text></svg>' });
+      }
+    }
+    function checkReminders() {
+      if (!S.reminders || !S.reminders.length) return;
+      const now = new Date();
+      const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      S.reminders.forEach(r => { if (r.enabled && r.time === hhmm) fireReminder(r); });
+    }
+
+    // ============ INIT ============
+    load();
+    updateSidebar();
+    renderDashboard();
+    setInterval(checkReminders, 60000);
+    // 起動時に既存データがあってもリマインダーフィールドを補完
+    if (!S.reminders) { S.reminders = []; }
+  </script>
+</body>
+
+</html>
